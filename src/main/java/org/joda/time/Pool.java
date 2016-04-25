@@ -1,76 +1,72 @@
 package org.joda.time;
 
+import org.joda.time.base.BaseSingleFieldPeriod;
+
 import java.util.HashMap;
+import java.util.Map;
 
 public class Pool {
 
     private static Pool myInstance;
-    private HashMap<Integer, Days> days;
-    private HashMap<Integer, Minutes> minutes;
+    private Map<Class, MiniPool> miniPools;
+
 
     private Pool() {
-        this.days = new HashMap<Integer, Days>();
-        this.minutes = new HashMap<Integer, Minutes>();
+        miniPools = new HashMap<Class, MiniPool>();
+        miniPools.put(Days.class, new MiniPool<Days>());
+        miniPools.put(Minutes.class, new MiniPool<Minutes>());
     }
 
-    public static Pool getInstance() {
 
+    private static MiniPool getMiniPool(Class clazz) {
         if (myInstance == null) {
             myInstance = new Pool();
         }
-
-        return myInstance;
+        return myInstance.miniPools.get(clazz);
     }
-
-    private void addDay(int numeral, Days day) {
-        days.put(new Integer(numeral), day);
-    }
-
 
 
     public static Days retrieveDays(int numeral) {
-        Pool pool = Pool.getInstance();
-
-        Object result = pool.getDays(numeral);
-
-        if (result == null) {
-            result =  new Days(numeral);
-            pool.addDay(numeral, (Days) result);
-        }
-
-        return (Days) result;
+        MiniPool<Days> daysPool = getMiniPool(Days.class);
+        return daysPool.retrieve(numeral, new ElementCreator() {
+            public Days create(int numeral) {
+                return new Days(numeral);
+            }
+        });
     }
-
 
     public static Minutes retrieveMinutes(int numeral) {
+        MiniPool<Minutes> minutesPool = getMiniPool(Minutes.class);
+        return minutesPool.retrieve(numeral, new ElementCreator() {
+            public Minutes create(int numeral) {
+                return new Minutes(numeral);
+            }
+        });
+    }
 
-        Pool pool = Pool.getInstance();
 
-        Object result = pool.getMinutes(numeral);
+    interface ElementCreator {
+        <E extends BaseSingleFieldPeriod> E create(int numeral);
+    }
 
-        if (result == null) {
-            result =  new Minutes(numeral);
-            pool.addMinutes(numeral, (Minutes) result);
+    private class MiniPool<E extends BaseSingleFieldPeriod> {
+        private Map<Integer, E> elements = new HashMap<Integer, E>();
+
+        private void add(int numeral, E element) {
+            elements.put(numeral, element);
         }
 
-        return (Minutes) result;
-    }
+        private E retrieve(int numeral, ElementCreator creator) {
+            E element = elements.get(numeral);
 
-    private void addMinutes(int numeral, Minutes minute) {
-        minutes.put(new Integer(numeral), minute);
-    }
+            if (element == null) {
+                element =  creator.create(numeral);
+                elements.put(numeral, element);
+            }
 
-
-    private Object getDays(int numeral){
-        Object instance = days.get(new Integer(numeral));
-
-        return instance;
+            return element;
+        }
 
     }
 
-    private Object getMinutes(int numeral) {
-        Object instance = minutes.get(new Integer(numeral));
-
-        return instance;
-    }
 }
