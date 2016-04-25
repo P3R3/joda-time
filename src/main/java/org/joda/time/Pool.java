@@ -18,6 +18,7 @@ public class Pool {
         miniPools.put(Hours.class, new MiniPool<Hours>());
         miniPools.put(Years.class, new MiniPool<Years>());
         miniPools.put(Months.class, new MiniPool<Months>());
+        miniPools.put(Weeks.class, new MiniPool<Weeks>());
     }
 
 
@@ -72,6 +73,16 @@ public class Pool {
         return minutesPool.retrieve(numeral, new ElementCreator() {
             public Months create(int numeral) {
                 return new Months(numeral);
+            }
+        });
+    }
+
+
+    public static Weeks retrieveWeeks(int numeral) {
+        MiniPool<Weeks> minutesPool = getMiniPool(Weeks.class);
+        return minutesPool.retrieve(numeral, new ElementCreator() {
+            public Weeks create(int numeral) {
+                return new Weeks(numeral);
             }
         });
     }
