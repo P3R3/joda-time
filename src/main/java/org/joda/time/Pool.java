@@ -15,6 +15,7 @@ public class Pool {
         miniPools = new HashMap<Class, MiniPool>();
         miniPools.put(Days.class, new MiniPool<Days>());
         miniPools.put(Minutes.class, new MiniPool<Minutes>());
+        miniPools.put(Hours.class, new MiniPool<Hours>());
     }
 
 
@@ -44,6 +45,15 @@ public class Pool {
         });
     }
 
+
+    public static Hours retrieveHours(int numeral) {
+        MiniPool<Hours> minutesPool = getMiniPool(Hours.class);
+        return minutesPool.retrieve(numeral, new ElementCreator() {
+            public Hours create(int numeral) {
+                return new Hours(numeral);
+            }
+        });
+    }
 
     interface ElementCreator {
         <E extends BaseSingleFieldPeriod> E create(int numeral);
