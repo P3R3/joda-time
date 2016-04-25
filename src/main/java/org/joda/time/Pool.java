@@ -17,6 +17,7 @@ public class Pool {
         miniPools.put(Minutes.class, new MiniPool<Minutes>());
         miniPools.put(Hours.class, new MiniPool<Hours>());
         miniPools.put(Years.class, new MiniPool<Years>());
+        miniPools.put(Months.class, new MiniPool<Months>());
     }
 
 
@@ -62,6 +63,15 @@ public class Pool {
         return minutesPool.retrieve(numeral, new ElementCreator() {
             public Years create(int numeral) {
                 return new Years(numeral);
+            }
+        });
+    }
+
+    public static Months retrieveMonths(int numeral) {
+        MiniPool<Months> minutesPool = getMiniPool(Months.class);
+        return minutesPool.retrieve(numeral, new ElementCreator() {
+            public Months create(int numeral) {
+                return new Months(numeral);
             }
         });
     }
