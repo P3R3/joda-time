@@ -15,7 +15,6 @@
  */
 package org.joda.time;
 
-import java.io.File;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
@@ -36,12 +35,7 @@ import org.joda.time.field.FieldUtils;
 import org.joda.time.format.DateTimeFormatter;
 import org.joda.time.format.DateTimeFormatterBuilder;
 import org.joda.time.format.FormatUtils;
-import org.joda.time.tz.DefaultNameProvider;
-import org.joda.time.tz.FixedDateTimeZone;
-import org.joda.time.tz.NameProvider;
-import org.joda.time.tz.Provider;
-import org.joda.time.tz.UTCProvider;
-import org.joda.time.tz.ZoneInfoProvider;
+import org.joda.time.tz.*;
 
 /**
  * DateTimeZone represents a time zone.
@@ -410,7 +404,7 @@ public abstract class DateTimeZone implements Serializable {
     public static Provider getProvider() {
         Provider provider = cProvider.get();
         if (provider == null) {
-            provider = getDefaultProvider();
+            provider = getDefaultProvider(null);
             if (!cProvider.compareAndSet(null, provider)) {
                 provider = cProvider.get();
             }
@@ -433,34 +427,9 @@ public abstract class DateTimeZone implements Serializable {
         if (sm != null) {
             sm.checkPermission(new JodaTimePermission("DateTimeZone.setProvider"));
         }
-        if (provider == null) {
-            provider = getDefaultProvider();
-        } else {
-            validateProvider(provider);
-        }
-        cProvider.set(provider);
+        cProvider.set(getDefaultProvider(provider));
     }
 
-    /**
-     * Sets the zone provider factory without performing the security check.
-     * 
-     * @param provider  provider to use, or null for default
-     * @return the provider
-     * @throws IllegalArgumentException if the provider is invalid
-     */
-    private static Provider validateProvider(Provider provider) {
-        Set<String> ids = provider.getAvailableIDs();
-        if (ids == null || ids.size() == 0) {
-            throw new IllegalArgumentException("The provider doesn't have any available ids");
-        }
-        if (!ids.contains("UTC")) {
-            throw new IllegalArgumentException("The provider doesn't support UTC");
-        }
-        if (!UTC.equals(provider.getZone("UTC"))) {
-            throw new IllegalArgumentException("Invalid UTC zone provided");
-        }
-        return provider;
-    }
 
     /**
      * Gets the default zone provider.
@@ -480,44 +449,19 @@ public abstract class DateTimeZone implements Serializable {
      * 
      * @return the default name provider
      */
-    private static Provider getDefaultProvider() {
-        // approach 1
-        try {
-            String providerClass = System.getProperty("org.joda.time.DateTimeZone.Provider");
-            if (providerClass != null) {
-                try {
-                    Provider provider = (Provider) Class.forName(providerClass).newInstance();
-                    return validateProvider(provider);
-                } catch (Exception ex) {
-                    throw new RuntimeException(ex);
-                }
-            }
-        } catch (SecurityException ex) {
-            // ignored
-        }
-        // approach 2
-        try {
-            String dataFolder = System.getProperty("org.joda.time.DateTimeZone.Folder");
-            if (dataFolder != null) {
-                try {
-                    Provider provider = new ZoneInfoProvider(new File(dataFolder));
-                    return validateProvider(provider);
-                } catch (Exception ex) {
-                    throw new RuntimeException(ex);
-                }
-            }
-        } catch (SecurityException ex) {
-            // ignored
-        }
-        // approach 3
-        try {
-            Provider provider = new ZoneInfoProvider("org/joda/time/tz/data");
-            return validateProvider(provider);
-        } catch (Exception ex) {
-            ex.printStackTrace();
-        }
-        // approach 4
-        return new UTCProvider();
+    private static Provider getDefaultProvider(Provider provider) {
+        ProviderReferenceSupplier byReference = new ProviderReferenceSupplier(provider);
+        ProviderPropertySupplier byProperty = new ProviderPropertySupplier();
+        ProviderFolderSupplier byFolder = new ProviderFolderSupplier();
+        ProviderClasspathSupplier byClasspath = new ProviderClasspathSupplier();
+        ProviderUTCSupplier utcLoader = new ProviderUTCSupplier();
+
+        byReference.nextApproach(byProperty);
+        byProperty.nextApproach(byFolder);
+        byFolder.nextApproach(byClasspath);
+        byClasspath.nextApproach(utcLoader);
+
+        return byReference.getProvider();
     }
 
     //-----------------------------------------------------------------------
